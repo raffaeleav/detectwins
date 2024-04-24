@@ -10,9 +10,9 @@
 ## Autori 
 | Nome | Matricola  |
 | ------------- | ------------- |
-| Aviello Raffaele  | V |
-| Califano Alfonso | V |
-| Capuano Rachele | V |
+| Aviello Raffaele  | 0522501856 |
+| Califano Alfonso | ... |
+| Capuano Rachele | ... |
 
 
 ## Dipendenze 
