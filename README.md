@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Framework sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
+  Un framework sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
 </p>
 
 
