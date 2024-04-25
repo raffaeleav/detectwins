@@ -16,4 +16,5 @@
 
 
 ## Dipendenze 
-Le dipendenze sono elencate nel file "requirements.txt".
+- [Artifact dataset](https://github.com/awsaf49/artifact)
+- Le dipendenze per gli script Python sono elencate nel file "requirements.txt".
