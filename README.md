@@ -16,4 +16,4 @@
 
 
 ## Dipendenze 
-Le dipendenze sono presenti nel file "requirements.txt".
+Le dipendenze sono elencate nel file "requirements.txt".
