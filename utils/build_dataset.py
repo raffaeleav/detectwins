@@ -1,5 +1,6 @@
 import os
 import cv2
+import random
 import pandas as pd
 
 from tqdm import tqdm
@@ -47,6 +48,51 @@ def check_image_path():
     cv2.waitKey(0)
 
 
+# funzione per creare il dataset di test
+def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
+    project_path = Path(__file__).parent.parent
+    df_real = pd.read_csv(real_dataset_path)
+    df_fake = pd.read_csv(fake_dataset_path)
+
+    # seleziono le immagini real e 'mescolo' il dataframe
+    df_real = (df_real[df_real.target == 0]).sample(frac=1)
+    
+    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
+
+    df_test = pd.DataFrame(columns=["real", "fake"])
+    df_test_size = len(df_out) / 100 * 20
+
+    # f(n) = O(n x m), m numero di celle in Anchor e Positive
+    for i in tqdm(range(len(df_test)), desc="building (real column) test dataframe..."):
+        if i == df_test_size - 1:
+            break
+        
+        idx = random.randint(0, len(df_real))
+        item = df_real.iloc[idx]["image_path"]
+
+        while item in df_out["Anchor"] or item in df_out["Positive"]:
+            idx = random.randint(0, len(df_real))
+            item = df_real.iloc[idx]["image_path"]
+
+        df_test.loc[i, "real"] = item
+
+    # f(n) = O(n x m)
+    for i in tqdm(range(len(df_test)), desc="building (real column) test dataframe..."):
+        if i == df_test_size - 1:
+            break
+        
+        idx = random.randint(0, len(df_fake))
+        item = df_fake.iloc[idx]["image_path"]
+
+        while item in df_out["Negative"]:
+            idx = random.randint(0, len(df_fake))
+            item = df_fake.iloc[idx]["image_path"]
+
+        df_test.loc[i, "fake"] = item
+
+    df_test.to_csv(output_dir, index=False)
+
+
 # attenzione ai path inseriti
 def main():
     path = Path(__file__).parent.parent.parent
@@ -56,10 +102,13 @@ def main():
     fake_dataset_path = os.path.join(artifact_path, "cycle_gan", "metadata.csv")
     real_dataset_path = os.path.join(artifact_path, "coco", "metadata.csv")
 
-    output_dir = os.path.join(project_path, "datasets", "out.csv")
+    # output_dir = os.path.join(project_path, "datasets", "out.csv")
 
-    build_df(fake_dataset_path, real_dataset_path, output_dir)
-    
+    # build_df(fake_dataset_path, real_dataset_path, output_dir)
+
+    output_dir = os.path.join(project_path, "datasets", "testList.csv")
+
+    build_test_df(fake_dataset_path, real_dataset_path, output_dir)
 
 
 if __name__ == "__main__":
