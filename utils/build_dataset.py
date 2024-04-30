@@ -54,37 +54,35 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
     df_real = pd.read_csv(real_dataset_path)
     df_fake = pd.read_csv(fake_dataset_path)
 
-    # seleziono le immagini real e 'mescolo' il dataframe
+    #'mescolo' i dataframe
     df_real = (df_real[df_real.target == 0]).sample(frac=1)
+    df_fake = df_fake.sample(frac=1)
     
     df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
 
     df_test = pd.DataFrame(columns=["real", "fake"])
     df_test_size = len(df_out) / 100 * 20
+    df_test_size = int(df_test_size)
 
     # f(n) = O(n x m), m numero di celle in Anchor e Positive
-    for i in tqdm(range(len(df_test)), desc="building (real column) test dataframe..."):
-        if i == df_test_size - 1:
-            break
-        
+    for i in tqdm(range(df_test_size), desc="building (real column) test dataframe..."):
+        # scelgo un elemento casuale dal dataset real
         idx = random.randint(0, len(df_real))
         item = df_real.iloc[idx]["image_path"]
 
-        while item in df_out["Anchor"] or item in df_out["Positive"]:
+        # controllo che non sia già presente nel dataset da usare per l'allenamento, altrimenti ne scelgo un altro
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list():
             idx = random.randint(0, len(df_real))
             item = df_real.iloc[idx]["image_path"]
 
         df_test.loc[i, "real"] = item
 
-    # f(n) = O(n x m)
-    for i in tqdm(range(len(df_test)), desc="building (real column) test dataframe..."):
-        if i == df_test_size - 1:
-            break
-        
+    # f(n) = O(n x m), m numero di celle in Negative
+    for i in tqdm(range(df_test_size), desc="building (fake column) test dataframe..."):
         idx = random.randint(0, len(df_fake))
         item = df_fake.iloc[idx]["image_path"]
 
-        while item in df_out["Negative"]:
+        while item in df_out["Negative"].to_list():
             idx = random.randint(0, len(df_fake))
             item = df_fake.iloc[idx]["image_path"]
 
