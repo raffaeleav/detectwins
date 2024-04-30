@@ -56,7 +56,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
 
     #'mescolo' i dataframe
     df_real = (df_real[df_real.target == 0]).sample(frac=1)
-    df_fake = df_fake.sample(frac=1)
+    df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
     
     df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
 
