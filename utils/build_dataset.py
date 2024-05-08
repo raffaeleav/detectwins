@@ -8,29 +8,39 @@ from pathlib import Path
 
 
 # funzione per costruire il dataset
-def build_df(fake_dataset_path, real_dataset_path, output_dir):   
+def build_df(fake_dataset_path, real_dataset_path, output_dir):
     # dataframe dei metadati del dataset di immagini
     df_fake = pd.read_csv(fake_dataset_path)
     # il dataset delle immagini real è coco
     df_real = pd.read_csv(real_dataset_path)
 
     # ottengo le immagini anchor, positive e fake
-    df_real = (df_real[df_real.target == 0]).sample(2000)
+    df_real = (df_real[df_real.target == 0]).sample(8000)
 
-    df_anchor = df_real.head(1000)
-    df_positive = df_real.tail(1000)
-    df_negative = (df_fake[df_fake.target != 0]).sample(1000)
+    df_anchor = pd.concat([df_fake.sample(4000), df_real.sample(4000)], ignore_index=True)
+    #df_anchor = df_anchor.sample(1000)
+    df_positive = df_real.sample(8000)
+    df_negative = (df_fake[df_fake.target != 0]).sample(8000)
 
     # dataframe finale
     df_out = pd.DataFrame(columns=['Anchor', 'Positive', 'Negative'])
 
     # f(n) = O(n)
-    for i in tqdm(range(1000), desc="building dataframe..."):
-        df_out.loc[i] = [
-            df_anchor.iloc[i]['image_path'], 
-            df_positive.iloc[i]['image_path'], 
-            df_negative.iloc[i]['image_path']
-        ]
+    for i in tqdm(range(8000), desc="building dataframe..."):
+        if "coco" in df_anchor.iloc[i]['image_path']:
+            df_out.loc[i] = [
+                df_anchor.iloc[i]['image_path'],
+                df_positive.iloc[i]['image_path'],
+                df_negative.iloc[i]['image_path']
+            ]
+
+        else:
+            df_out.loc[i] = [
+                df_anchor.iloc[i]['image_path'],
+                df_negative.iloc[i]['image_path'],
+                df_positive.iloc[i]['image_path']
+            ]
+
 
     df_out.to_csv(output_dir, index=False)
 
@@ -71,7 +81,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         item = df_real.iloc[idx]["image_path"]
 
         # controllo che non sia già presente nel dataset da usare per l'allenamento, altrimenti ne scelgo un altro
-        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list():
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
             idx = random.randint(0, len(df_real))
             item = df_real.iloc[idx]["image_path"]
 
@@ -82,9 +92,11 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         idx = random.randint(0, len(df_fake))
         item = df_fake.iloc[idx]["image_path"]
 
-        while item in df_out["Negative"].to_list():
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
             idx = random.randint(0, len(df_fake))
             item = df_fake.iloc[idx]["image_path"]
+
+
 
         df_test.loc[i, "fake"] = item
 
@@ -97,12 +109,12 @@ def main():
     project_path = Path(__file__).parent.parent
 
     artifact_path = os.path.join(path, "artifact")
-    fake_dataset_path = os.path.join(artifact_path, "cycle_gan", "metadata.csv")
+    fake_dataset_path = os.path.join(artifact_path, "latent_diffusion", "metadata.csv")
     real_dataset_path = os.path.join(artifact_path, "coco", "metadata.csv")
 
-    # output_dir = os.path.join(project_path, "datasets", "out.csv")
+    #output_dir = os.path.join(project_path, "datasets", "out.csv")
 
-    # build_df(fake_dataset_path, real_dataset_path, output_dir)
+    #build_df(fake_dataset_path, real_dataset_path, output_dir)
 
     output_dir = os.path.join(project_path, "datasets", "testList.csv")
 
