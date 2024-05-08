@@ -8,11 +8,11 @@
 
 
 ## Autori 
-| Nome | Matricola  |
+| Nome | Profilo GitHub |
 | ------------- | ------------- |
-| Aviello Raffaele  | 0522501856 |
-| Califano Alfonso | ... |
-| Capuano Rachele | ... |
+| Aviello Raffaele  | [raffaeleav](https://github.com/raffaeleav) |
+| Califano Alfonso | [Ackermann32](https://github.com/Ackermann32) |
+| Capuano Rachele | [raaacheeelc](https://github.com/raaacheeelc) |
 
 
 ## Dipendenze 
