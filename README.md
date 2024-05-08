@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Un framework sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
+  Un framework di Deep Fake detection sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
 </p>
 
 
