@@ -13,7 +13,13 @@ def online_hard_mining(batch, batch_size):
     A, P, N = batch
 
     for i in range(batch_size): 
-        A[i]
+        ap_distance = 0
+        an_distance = 0
+        for j in range(batch_size): 
+            temp_ap_dist = distance(A[i], P[j])
+            temp_an_dist = distance(A[i], N[j])
+            if  temp_ap_dist > ap_distance: 
+                print("hit")
 
     return A, P, N
         
