@@ -9,9 +9,7 @@ def distance(img_enc, anc_enc_arr):
 
 
 # si formano dei triplet seguendo questa relazione: smallest anchor-negative distance, largest anchor-positive distance 
-def online_hard_mining(batch, batch_size):
-    A, P, N = batch
-
+def online_hard_mining(A, P, N, batch_size):
     for i in range(batch_size): 
         ap_distance = distance(A[i], P[i])
         an_distance = distance(A[i], N[i])
