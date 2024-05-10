@@ -2,7 +2,6 @@ import numpy as np
 
 
 def distance(img_enc, anc_enc_arr):
-    # dist = np.sqrt(np.dot(img_enc-anc_enc_arr, (img_enc- anc_enc_arr).T))
     dist = np.dot(img_enc-anc_enc_arr, (img_enc-anc_enc_arr).T)
     # dist = np.sqrt(dist)
     
@@ -14,7 +13,7 @@ def online_hard_mining(batch, batch_size):
     A, P, N = batch
 
     for i in range(batch_size): 
-        print()
+        A[i]
 
     return A, P, N
         
