@@ -1,0 +1,6 @@
+# cartella pycache
+utils/__pycache__/
+
+# esclusi i file di output perchè sono troppo pesanti
+notebooks/best_model.pt
+notebooks/database.csv

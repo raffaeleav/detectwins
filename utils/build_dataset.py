@@ -124,12 +124,12 @@ def main():
     project_path = Path(__file__).parent.parent
 
     artifact_path = os.path.join(path, "artifact")
-    fake_dataset_path = os.path.join(artifact_path, "big_gan", "metadata.csv")
+    fake_dataset_path = os.path.join(artifact_path, "taming_transformer", "metadata.csv")
     real_dataset_path = os.path.join(artifact_path, "coco", "metadata.csv")
 
     output_dir = os.path.join(project_path, "datasets", "out.csv")
-    # size di 8000 perchè big_gan ha solo 10000 fake
-    dataset_size = 8000
+    
+    dataset_size = 20000
     build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size)
 
     output_dir = os.path.join(project_path, "datasets", "testList.csv")
