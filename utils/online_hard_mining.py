@@ -9,14 +9,25 @@ def distance(img_enc, anc_enc_arr):
 
 
 # si formano dei triplet seguendo questa relazione: smallest anchor-negative distance, largest anchor-positive distance 
-def online_hard_mining(A, P, N, batch_size):
+def online_hard_mining(A, P, N, model, batch_size):
+    print(A.shape)
+    print(P.shape) 
+    print(N.shape) 
+
+    # f(n) = O(n^2)
     for i in range(batch_size): 
-        ap_distance = distance(A[i].detach().cpu().numpy(), P[i].detach().cpu().numpy())
-        an_distance = distance(A[i].detach().cpu().numpy(), N[i].detach().cpu().numpy())
+        ai, pi, ni = A[i].detach().cpu().numpy(), P[i].detach().cpu().numpy(), N[i].detach().cpu().numpy()
+        ai, pi, ni = np.array(ai), np.array(pi), np.array(ni)
+        
+        ap_distance = distance(ai, pi)
+        an_distance = distance(ai, ni)
 
         for j in range(batch_size): 
-            temp_ap_dist = distance(A[i].detach().cpu().numpy(), P[j].detach().cpu().numpy())
-            temp_an_dist = distance(A[i].detach().cpu().numpy(), N[j].detach().cpu().numpy())
+            pj, nj = P[j].detach().cpu().numpy(), N[j].detach().cpu().numpy()
+            pj, nj = np.array(pj), np.array(nj)
+
+            temp_ap_dist = distance(ai, pj)
+            temp_an_dist = distance(ai, nj)
 
             if i != j and ap_distance == temp_ap_dist:
                 print("temp_ap_dist equal...")
