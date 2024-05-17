@@ -48,8 +48,6 @@ def filter(x, margin):
     ap_distance = distance(x.A_embs, x.P_embs)
     an_distance = distance(x.A_embs, x.N_embs)
 
-    margin = 0.01
-
     if ap_distance < an_distance and an_distance < ap_distance + margin:
         return x
 
