@@ -1,4 +1,6 @@
 import torch
+import pandas as pd
+
 
 def distance(x, y):
     dist = torch.norm(x - y)
@@ -39,3 +41,21 @@ def online_hard_mining(A, P, N, batch_size, device):
     A, P, N = A.to(device), A.to(device), A.to(device)
 
     return A, P, N
+
+
+# si selezionano i triplet che rispettano questa relazione: f(ap) < f(an) and f(an) < f(ap) + a (margin)
+def filter(x, margin):
+    ap_distance = distance(x.A_embs, x.P_embs)
+    an_distance = distance(x.A_embs, x.N_embs)
+
+    margin = 0.01
+
+    if ap_distance < an_distance and an_distance < ap_distance + margin:
+        return x
+
+
+# applico il filtro al df
+def offline_semi_hard_mining(df, margin): 
+    df = df.apply(filter, args=margin)
+
+    return df 
