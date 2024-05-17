@@ -1,6 +1,5 @@
 import torch
 
-
 def distance(x, y):
     dist = torch.norm(x - y)
     # dist = np.sqrt(dist)

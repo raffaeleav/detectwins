@@ -27,7 +27,7 @@ def build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):
     df_positive = df_real1.tail(dataset_size)
     df_negative = df_fake1
 
-    # dataframe finale
+    # dataframe con anchor positive
     df_out1 = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
     dataset_size = int(dataset_size / 2)
 
@@ -39,6 +39,7 @@ def build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):
             df_negative.iloc[i]["image_path"]
         ]
 
+    # dataframe con anchor negative
     df_out2 = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
 
     # si crea la parte del dataset in cui le Anchor sono fake (le Anchor possono essere anche immagini che nella 
