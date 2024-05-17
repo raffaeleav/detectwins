@@ -1,5 +1,12 @@
+import os
+import torch
 import itertools
 import pandas as pd
+import online_hard_mining as ohm
+
+
+from tqdm import tqdm
+from pathlib import Path
 
 
 def combine(anchor_images, positive_images, negative_images):
@@ -48,7 +55,19 @@ def build_combinations_df(fake_dataset_path, real_dataset_path, output_dir, data
     df_out.to_csv(output_dir, index=False)
 
 
-# funzione per creare 
-def semi_hard_mining(df, model, margin):
-    print()
-    
+# si selezionano i triplet che rispettano questa relazione: f(ap) < f(an) and f(an) < f(ap) + a (margin)
+def filter(x, margin):
+    ap_distance = ohm.distance(x.A_embs, x.P_embs)
+    an_distance = ohm.distance(x.A_embs, x.N_embs)
+
+    margin = 0.01
+
+    if ap_distance < an_distance and an_distance < ap_distance + margin:
+        return x
+
+
+# applico il filtro al df
+def offline_semi_hard_mining(df, margin): 
+    df = df.apply(filter, args=margin)
+
+    return df 
