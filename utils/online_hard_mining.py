@@ -1,50 +1,42 @@
-import numpy as np
+import torch
 
 
-def distance(img_enc, anc_enc_arr):
-    dist = np.dot(img_enc-anc_enc_arr, (img_enc-anc_enc_arr).T)
+def distance(x, y):
+    dist = torch.norm(x - y)
     # dist = np.sqrt(dist)
     
     return dist
 
 
 # si formano dei triplet seguendo questa relazione: smallest anchor-negative distance, largest anchor-positive distance 
-def online_hard_mining(A, P, N, model, batch_size):
-    print(A.shape)
-    print(P.shape) 
-    print(N.shape) 
-
-    # f(n) = O(n^2)
-    for i in range(batch_size): 
-        ai, pi, ni = A[i].detach().cpu().numpy(), P[i].detach().cpu().numpy(), N[i].detach().cpu().numpy()
-        ai, pi, ni = np.array(ai), np.array(pi), np.array(ni)
+def online_hard_mining(A, P, N, batch_size, device):
+    A, P, N = A.cpu(), P.cpu(), N.cpu()
+    
+    for i in range(batch_size):
+        ap_distance = distance(A[i], P[i]).detach().numpy()
+        an_distance = distance(A[i], N[i]).detach().numpy()
         
-        ap_distance = distance(ai, pi)
-        an_distance = distance(ai, ni)
-
-        for j in range(batch_size): 
-            pj, nj = P[j].detach().cpu().numpy(), N[j].detach().cpu().numpy()
-            pj, nj = np.array(pj), np.array(nj)
-
-            temp_ap_dist = distance(ai, pj)
-            temp_an_dist = distance(ai, nj)
-
-            if i != j and ap_distance == temp_ap_dist:
-                print("temp_ap_dist equal...")
-
-            if i != j and an_distance == temp_an_dist:
-                print("temp_an_dist equal...")
-
-            if  temp_ap_dist > ap_distance: 
-                ap_distance = temp_ap_dist
-                temp = P[i]
-                P[i] = P[j]
-                P[j] = temp
+        for j in range(batch_size):
+            if j < i: 
+                continue 
             
-            if temp_an_dist < an_distance: 
+            temp_ap_dist = distance(A[i], P[j]).detach().numpy()
+            temp_an_dist = distance(A[i], N[j]).detach().numpy()
+
+            if temp_ap_dist > ap_distance:
+                ap_distance = temp_ap_dist
+
+                temp = P[i].clone()
+                P[i].copy_(P[j])
+                P[j].copy_(temp)
+            
+            if temp_an_dist < an_distance:
                 an_distance = temp_an_dist
-                temp = N[i]
-                N[i] = N[j]
-                N[j] = temp
+
+                temp = N[i].clone()
+                N[i].copy_(N[j])
+                N[j].copy_(temp)
+
+    A, P, N = A.to(device), A.to(device), A.to(device)
 
     return A, P, N
