@@ -1,7 +1,8 @@
 import itertools
 import pandas as pd
+import torch
 
-
+size = 32
 def combine(anchor_images, positive_images, negative_images):
     combinations = list(itertools.product(anchor_images, positive_images, negative_images))
     df = pd.DataFrame(combinations, columns=["Anchor", "Positive", "Negative"])
@@ -50,5 +51,25 @@ def build_combinations_df(fake_dataset_path, real_dataset_path, output_dir, data
 
 # funzione per creare 
 def semi_hard_mining(df, model, margin):
-    print()
+
+    dataset = pd.DataFrame(columns=["Anchor", "Positive", "Negative", "A_emb", "P_emb", "N_emb"])
+
+
+    for i in range (len(df)):
+            dist_positive = torch.norm(df.iloc[i]["A_emb"] - df.iloc[i]["P_emb"])
+            dist_negative = torch.norm(df.iloc[i]["A_emb"] - df.iloc[i]["N_emb"])
+            if dist_positive < dist_negative < dist_positive + margin:
+                dataset.loc[i] = [
+                df.iloc[i]["Anchor"],
+                df.iloc[i]["Positive"],
+                df.iloc[i]["Negative"],
+                df.iloc[i]["A_emb"],
+                df.iloc[i]["P_emb"],
+                df.iloc[i]["N_emb"]
+                ]
+
+
+
+    return dataset
+
     
