@@ -1,4 +1,6 @@
+import ast
 import torch
+import numpy as np
 import pandas as pd
 
 
@@ -43,17 +45,20 @@ def online_hard_mining(A, P, N, batch_size, device):
     return A, P, N
 
 
-# si selezionano i triplet che rispettano questa relazione: f(ap) < f(an) and f(an) < f(ap) + a (margin)
+# si selezionano i triplet che rispettano questa relazione: f(ap) < f(an) and f(an) < f(ap) + a
 def filter(x, margin):
-    ap_distance = distance(x.A_embs, x.P_embs)
-    an_distance = distance(x.A_embs, x.N_embs)
+    # si deserializzano gli array memorizzati precedentemente come stringhe
+    A, P, N = np.array(ast.literal_eval(x["Anchor_embs"])), np.array(ast.literal_eval(x["Positive_embs"])), np.array(ast.literal_eval(x["Negative_embs"]))
+    A, P, N = torch.tensor(A), torch.tensor(P), torch.tensor(N)
 
-    if ap_distance < an_distance and an_distance < ap_distance + margin:
-        return x
+    ap_distance = distance(A, P).detach().numpy()
+    an_distance = distance(A, N).detach().numpy()
+
+    return ap_distance < an_distance and an_distance < (ap_distance + margin)
 
 
 # applico il filtro al df
-def offline_semi_hard_mining(df, margin): 
-    df = df.apply(filter, args=margin)
+def offline_semi_hard_mining(df, margin):
+    df = df[df.apply(filter, args=(margin,), axis=1)]
 
     return df 

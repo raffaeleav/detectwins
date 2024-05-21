@@ -1,5 +1,4 @@
 import os
-import cv2
 import random
 import pandas as pd
 
@@ -8,7 +7,7 @@ from pathlib import Path
 
 
 # funzione per costruire il dataset
-def build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):   
+def train(fake_dataset_path, real_dataset_path, output_dir, dataset_size):   
     # dataframe dei metadati del dataset di immagini
     df_fake = pd.read_csv(fake_dataset_path)
     # il dataset delle immagini real è coco
@@ -63,21 +62,8 @@ def build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):
     df_out.to_csv(output_dir, index=False)
 
 
-# funzione per controllare che le immagini nel dataset si possano reperire
-def check_image_path():
-    # dir dove si trova il dataset artifact
-    path = Path(__file__).parent.parent.parent
-    dataset_path = os.path.join(path, "artifact", "cycle_gan")
-    img_path = os.path.join("st", "horse2zebra", "img003759.jpg")
-    path = os.path.join(dataset_path, img_path)
-
-    image = cv2.imread(path)
-    cv2.imshow("dataset-image", image)
-    cv2.waitKey(0)
-
-
 # funzione per creare il dataset di test
-def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
+def test(fake_dataset_path, real_dataset_path, output_dir, df_out):
     project_path = Path(__file__).parent.parent
     df_real = pd.read_csv(real_dataset_path)
     df_fake = pd.read_csv(fake_dataset_path)
@@ -85,8 +71,6 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
     # 'mescolo' i dataframe
     df_real = (df_real[df_real.target == 0]).sample(frac=1)
     df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
-    
-    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
 
     df_test = pd.DataFrame(columns=["real", "fake"])
     df_test_size = len(df_out) / 100 * 20
@@ -120,24 +104,19 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
 
 
 # attenzione ai path inseriti
-def main():
+def build(dataset_size, fake_dataset, real_dataset):
     path = Path(__file__).parent.parent.parent
     project_path = Path(__file__).parent.parent
-
     artifact_path = os.path.join(path, "artifact")
-    fake_dataset_path = os.path.join(artifact_path, "taming_transformer", "metadata.csv")
-    real_dataset_path = os.path.join(artifact_path, "coco", "metadata.csv")
+    fake_dataset_path = os.path.join(artifact_path, fake_dataset, "metadata.csv")
+    real_dataset_path = os.path.join(artifact_path, real_dataset, "metadata.csv")
 
     output_dir = os.path.join(project_path, "datasets", "out.csv")
-    
-    dataset_size = 20000
-    build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size)
+    train(fake_dataset_path, real_dataset_path, output_dir, dataset_size)
 
     output_dir = os.path.join(project_path, "datasets", "testList.csv")
-    build_test_df(fake_dataset_path, real_dataset_path, output_dir)
+    test(fake_dataset_path, real_dataset_path, output_dir)
 
 
 if __name__ == "__main__":
-    main()
-    
-    # check_image_path()
+    build(50000, "taming_transformer", "coco")
