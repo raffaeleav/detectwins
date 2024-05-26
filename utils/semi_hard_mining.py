@@ -1,6 +1,9 @@
 import itertools
+import os
 import pandas as pd
 import torch
+from tqdm import tqdm
+from pathlib import Path
 
 size = 32
 def combine(anchor_images, positive_images, negative_images):
@@ -50,26 +53,25 @@ def build_combinations_df(fake_dataset_path, real_dataset_path, output_dir, data
 
 
 # funzione per creare 
-def semi_hard_mining(df, model, margin):
+def semi_hard_mining(embeddings_a, embeddings_p, embeddings_n, margin):
 
     dataset = pd.DataFrame(columns=["Anchor", "Positive", "Negative", "A_emb", "P_emb", "N_emb"])
 
-
-    for i in range (len(df)):
-            dist_positive = torch.norm(df.iloc[i]["A_emb"] - df.iloc[i]["P_emb"])
-            dist_negative = torch.norm(df.iloc[i]["A_emb"] - df.iloc[i]["N_emb"])
-            if dist_positive < dist_negative < dist_positive + margin:
-                dataset.loc[i] = [
-                df.iloc[i]["Anchor"],
-                df.iloc[i]["Positive"],
-                df.iloc[i]["Negative"],
-                df.iloc[i]["A_emb"],
-                df.iloc[i]["P_emb"],
-                df.iloc[i]["N_emb"]
-                ]
-
-
-
+    for i in range (len(embeddings_a)):
+        for j in range(len(embeddings_p)):
+            dist_positive = torch.norm(embeddings_a.iloc[i]["A_emb"] - embeddings_p.iloc[j]["P_emb"])
+            for k in range(len(embeddings_n)):
+                dist_negative = torch.norm(embeddings_a.iloc[i]["A_emb"] - embeddings_n.iloc[k]["N_emb"])
+                if dist_positive < dist_negative < dist_positive + margin:
+                    dataset.loc[i] = [
+                    embeddings_a.iloc[i]["Anchor"],
+                    embeddings_p.iloc[j]["Positive"],
+                    embeddings_n.iloc[k]["Negative"],
+                    embeddings_a.iloc[i]["A_emb"],
+                    embeddings_p.iloc[j]["P_emb"],
+                    embeddings_n.iloc[k]["N_emb"]
+                    ]
+    dataset.to_csv("prova.csv",index=False)                
     return dataset
 
     
