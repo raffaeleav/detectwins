@@ -74,7 +74,7 @@ def test(fake_dataset_path, real_dataset_path, output_dir, df_out):
 
     df_test = pd.DataFrame(columns=["real", "fake"])
     df_test_size = len(df_out) / 100 * 20
-    df_test_size = int(df_test_size)
+    df_test_size = int(df_test_size / 2)
 
     # f(n) = O(n x m), m numero di celle in Anchor e Positive
     for i in tqdm(range(df_test_size), desc="building (real column) test dataframe..."):

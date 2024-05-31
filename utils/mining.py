@@ -53,7 +53,7 @@ def filter(x, margin):
     ap_distance = distance(a, p).detach().numpy()
     an_distance = distance(a, n).detach().numpy()
 
-    return ap_distance < an_distance and an_distance < (ap_distance + margin)
+    return ap_distance < an_distance < (ap_distance + margin)
 
 
 # applico il filtro al df
