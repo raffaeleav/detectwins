@@ -1,77 +1,217 @@
-import itertools
+import ast
+import random
+import cv2
 import os
-import pandas as pd
+import sys
+import timm
 import torch
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+
+from torch import nn
 from tqdm import tqdm
+from skimage import io
 from pathlib import Path
 
-size = 32
-def combine(anchor_images, positive_images, negative_images):
-    combinations = list(itertools.product(anchor_images, positive_images, negative_images))
-    df = pd.DataFrame(combinations, columns=["Anchor", "Positive", "Negative"])
+# per far funzionare il modello su immagini rgb o in scala di grigi (per usare fourier)
+mode="rgb"
 
-    return df
+BATCH_SIZE = 32
 
+DEVICE = "cpu"
 
-# funzione per costruire il dataset di tutti i possibili triplet
-def build_combinations_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):   
-    # dataframe dei metadati del dataset di immagini
-    df_fake = pd.read_csv(fake_dataset_path)
-    # il dataset delle immagini real è coco
-    df_real = pd.read_csv(real_dataset_path)
+path = Path(__file__).parent.parent.parent
+project_path = Path(__file__).parent.parent
 
-    # 'mescolo' i dataframe
-    df_real = (df_real[df_real.target == 0]).sample(frac=1)
-    df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
+artifact_path = os.path.join(path, "artifact")
+fake_dir_path = os.path.join(artifact_path, "taming_transformer")
+real_dir_path = os.path.join(artifact_path, "coco")
 
-    dataset_size = int(dataset_size / 2)
+fake_metadata = os.path.join(artifact_path, "taming_transformer", "metadata.csv")
+real_metadata = os.path.join(artifact_path, "coco", "metadata.csv")
 
-    # si crea la parte del dataset in cui le Anchor sono real
-    df_real1 = df_real.sample(dataset_size * 2)
-    df_fake1 = df_fake.sample(dataset_size)
+output_dir_path = os.path.join(project_path, "datasets", "semi_hard_mining_database.csv") 
 
-    # si ottengono le immagini anchor, positive e fake
-    df_anchor = df_real1.head(dataset_size)
-    df_positive = df_real1.tail(dataset_size)
-    df_negative = df_fake1
+# classe del modello che genera gli embedding per applicare il semi-hard mining
+class EmbModel(nn.Module):
 
-    df_out1 = combine(df_anchor["image_path"].tolist(), df_positive["image_path"].tolist(), df_negative["image_path"].tolist())
+    # size del vettore di embedding
+    def __init__(self, emb_size = 512):
+        super(EmbModel, self).__init__()
 
-    # si crea la parte del dataset in cui le Anchor sono fake (le Anchor possono essere anche immagini che nella 
-    # prima parte del dataset erano presenti nella colonna Negative)
-    df_fake2 = df_fake.sample(dataset_size * 2)
-    df_real2 = df_real.sample(dataset_size)
+        # gli embedding vengono creati con un modello preallenato (risultato più efficace in test precedenti)
+        self.efficientnet = timm.create_model("tf_efficientnetv2_b0", pretrained=True)
+        self.efficientnet.classifier = nn.Linear(in_features=self.efficientnet.classifier.in_features, out_features=emb_size)
 
-    df_anchor = df_fake2.head(dataset_size)
-    df_positive = df_fake2.tail(dataset_size)
-    df_negative = df_real2
-
-    df_out2 = combine(df_anchor["image_path"].tolist(), df_positive["image_path"].tolist(), df_negative["image_path"].tolist())
-
-    df_out = pd.concat([df_out1, df_out2], axis=0)
-    df_out.to_csv(output_dir, index=False)
-
-
-# funzione per creare 
-def semi_hard_mining(embeddings_a, embeddings_p, embeddings_n, margin):
-
-    dataset = pd.DataFrame(columns=["Anchor", "Positive", "Negative", "A_emb", "P_emb", "N_emb"])
-
-    for i in range (len(embeddings_a)):
-        for j in range(len(embeddings_p)):
-            dist_positive = torch.norm(embeddings_a.iloc[i]["A_emb"] - embeddings_p.iloc[j]["P_emb"])
-            for k in range(len(embeddings_n)):
-                dist_negative = torch.norm(embeddings_a.iloc[i]["A_emb"] - embeddings_n.iloc[k]["N_emb"])
-                if dist_positive < dist_negative < dist_positive + margin:
-                    dataset.loc[i] = [
-                    embeddings_a.iloc[i]["Anchor"],
-                    embeddings_p.iloc[j]["Positive"],
-                    embeddings_n.iloc[k]["Negative"],
-                    embeddings_a.iloc[i]["A_emb"],
-                    embeddings_p.iloc[j]["P_emb"],
-                    embeddings_n.iloc[k]["N_emb"]
-                    ]
-    dataset.to_csv("prova.csv",index=False)                
-    return dataset
-
+    def forward(self, images):
+        embeddings = self.efficientnet(images)
+        return embeddings
     
+model = EmbModel()
+
+# per processare le immagini in scala di grigi per fare fourier serve una CNN 2D
+if mode == "grey_scale":
+    model.efficientnet.conv_stem = nn.Conv2d(1, 32, 3, 2, 1, bias=False)
+
+model.to(DEVICE)
+
+
+# funzione per generare i vettori di encoding
+def get_encoding_csv(model, anc_img_names, dirFolder):
+    anc_img_names_arr = np.array(anc_img_names)
+    encodings = []
+
+    model.eval()
+
+    with torch.no_grad():
+        for i in tqdm(anc_img_names_arr):
+
+            if mode == "rgb":
+                # serve per trovare correttamente l'immagine
+                if "tt" in i:
+                    dirFolder = fake_dir_path
+                    A = io.imread(os.path.join(dirFolder, i))
+                else:
+                    dirFolder = real_dir_path
+                    A = io.imread(os.path.join(dirFolder, i))
+
+                A = torch.from_numpy(A).permute(2, 0, 1) / 255.0
+
+            if mode == "grey_scale":
+                A = io.imread(os.path.join(dirFolder, i))
+
+                A = np.expand_dims(A, 0)
+                A = torch.from_numpy(A.astype(np.int32)) / 255.0
+
+            A = A.to(DEVICE)
+            A_enc = model(A.unsqueeze(0))
+            encodings.append(A_enc.squeeze().cpu().detach().numpy())
+
+        encodings = np.array(encodings)
+        encodings = pd.DataFrame(encodings)
+        df_enc = pd.concat([anc_img_names, encodings], axis=1)
+
+        return df_enc
+
+def euclidean_dist(img_enc, anc_enc_arr):
+    # dist = np.sqrt(np.dot(img_enc-anc_enc_arr, (img_enc- anc_enc_arr).T))
+    dist = np.dot(img_enc-anc_enc_arr, (img_enc- anc_enc_arr).T)
+    # dist = np.sqrt(dist)
+    return dist
+
+
+def string_to_tensor(tensor_str):
+    # Rimuovi 'tensor(' all'inizio e ')' alla fine
+    tensor_str = tensor_str.replace('tensor(', '').rstrip(')')
+    # Converti la stringa in una lista
+    tensor_list = ast.literal_eval(tensor_str)
+    # Converti la lista in un tensor di PyTorch
+    return torch.tensor(tensor_list)
+
+
+# funzione per creare
+def semi_hard_mining(real_metadata, fake_metadata, margin, output_dir_path):
+    taming_transformer = pd.read_csv(fake_metadata, usecols=['image_path'], nrows=1000)
+    coco = pd.read_csv(real_metadata, usecols=['image_path'], nrows=1000)
+
+    real_df = pd.DataFrame({'real': coco['image_path']})
+    real_df.to_csv("real.csv", index=False)
+
+    print("ho creato real df")
+
+    fake_df = pd.DataFrame({'fake': taming_transformer['image_path']})
+    fake_df.to_csv("fake.csv", index=False)
+
+    df = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
+
+    df_enc_real = get_encoding_csv(model, real_df["real"], real_dir_path)
+    df_enc_fake = get_encoding_csv(model, fake_df["fake"], fake_dir_path)
+
+    anc_enc_arr_real = df_enc_real.iloc[:, 1:].to_numpy()
+    anc_enc_arr_fake = df_enc_fake.iloc[:, 1:].to_numpy()
+
+    dataset_semi_hard_fake = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
+    dataset_semi_hard_real = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
+
+    fake_index = 0
+    real_index = 0
+
+    with torch.no_grad():
+        print(len(df_enc_fake))
+        for i in tqdm(range(len(df_enc_fake))):
+            A_embs = anc_enc_arr_fake[i : i+1, :]
+            path_anchor = df_enc_fake.iloc[i]['fake']
+            triplet_found = False
+            while not (triplet_found):
+
+                idp = random.randint(0, len(df_enc_fake) - 1)
+                while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_fake[idp:idp+1, :])):
+                     idp = random.randint(1, len(df_enc_fake) - 1)
+
+                P_embs = anc_enc_arr_fake[idp : idp +1, :]
+                path_positive = df_enc_fake.iloc[idp]["fake"]
+
+
+                idn = random.randint(0, len(df_enc_real) - 1)
+                N_embs = anc_enc_arr_real[idn : idn+1, :]
+                path_negative = df_enc_real.iloc[idn]["real"]
+
+                dist_positive = euclidean_dist(anc_enc_arr_fake[i : i+1, :], anc_enc_arr_fake[idp : idp+1, :])
+                dist_negative = euclidean_dist(anc_enc_arr_fake[i : i+1, :], anc_enc_arr_real[idn : idn+1, :])
+                
+                if dist_positive < dist_negative < dist_positive + margin:
+                    dataset_semi_hard_fake.loc[fake_index] = [
+                        path_anchor,
+                        path_positive,
+                        path_negative,
+                    ]
+                    fake_index = fake_index + 1
+                    triplet_found = True
+
+           # print ("Ciclo Fake:  IDP:  ",idp,"  IDN: ",idn)
+
+        for i in tqdm(range(len(df_enc_real))):
+            A_embs = anc_enc_arr_real[i : i+1, :]
+            path_anchor = df_enc_real.iloc[i]["real"]
+            triplet_found = False
+            while not (triplet_found):
+                idp = random.randint(0, len(df_enc_real) - 1)
+                while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_real[idp:idp+1, :])):
+                    idp = random.randint(1, len(df_enc_real) - 1)
+
+                P_embs = anc_enc_arr_real[idp : idp+1, :]
+                path_positive = df_enc_real.iloc[idp]["real"]
+
+                idn = random.randint(0, len(df_enc_fake) - 1)
+                N_embs = anc_enc_arr_fake[idn : idn+1, :]
+                path_negative = df_enc_fake.iloc[idn]["fake"]
+
+                dist_positive = euclidean_dist(anc_enc_arr_real[i : i+1, :], anc_enc_arr_real[idp : idp+1, :])
+                dist_negative = euclidean_dist(anc_enc_arr_real[i : i+1, :], anc_enc_arr_fake[idn : idn+1, :])
+
+                if dist_positive < dist_negative < dist_positive + margin:
+                    dataset_semi_hard_real.loc[real_index] = [
+                        path_anchor,
+                        path_positive,
+                        path_negative,
+                    ]
+                    real_index = real_index + 1
+                    triplet_found = True
+               # print("Ciclo Real:  IDP:  ", idp, "  IDN: ", idn)
+
+
+    dataset_semi_hard = pd.concat([dataset_semi_hard_fake, dataset_semi_hard_real], ignore_index=True)
+    dataset_semi_hard = dataset_semi_hard.sample(frac=1)
+    dataset_semi_hard.to_csv(output_dir_path ,index=False)
+    return dataset_semi_hard
+
+def main():
+    margin = 0.2
+    semi_hard_mining(fake_metadata, real_metadata, margin, output_dir_path)
+
+if __name__ == "__main__": 
+    main()
+
