@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 # funzione per costruire il dataset
-def train(fake_dataset_path, real_dataset_path, output_dir, dataset_size):   
+def train(fake_dataset_path, real_dataset_path, dataset_size, output_dir):   
     # dataframe dei metadati del dataset di immagini
     df_fake = pd.read_csv(fake_dataset_path)
     # il dataset delle immagini real è coco
@@ -62,8 +62,7 @@ def train(fake_dataset_path, real_dataset_path, output_dir, dataset_size):
 
 
 # funzione per creare il dataset di test
-def test(fake_dataset_path, real_dataset_path, output_dir, df_out):
-    project_path = Path(__file__).parent.parent
+def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
     df_real = pd.read_csv(real_dataset_path)
     df_fake = pd.read_csv(fake_dataset_path)
 
@@ -75,31 +74,26 @@ def test(fake_dataset_path, real_dataset_path, output_dir, df_out):
     df_test_size = len(df_out) / 100 * 20
     df_test_size = int(df_test_size / 2)
 
-    # f(n) = O(n x m), m numero di celle in Anchor e Positive
-    for i in tqdm(range(df_test_size), desc="building (real column) test dataframe..."):
-        for j in range(len(df_real)):
-            item = df_real.iloc[j]["image_path"]
-            
-            # controllo che non sia già presente nel dataset da usare per l'allenamento
-            if item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
-                continue
+    used_images = set(df_out["Anchor"].to_list() + df_out["Positive"].to_list() + df_out["Negative"].to_list())
+    real_images = []
+    fake_images = []
 
-            else: 
-                df_test.loc[i, "real"] = item
+    for i in tqdm(df_real["image_path"], desc="building (real column) test dataframe..."):
+        if i not in used_images: 
+            real_images.append(i)
+
+            if len(real_images) >= df_test_size:
                 break
 
-    for i in tqdm(range(df_test_size), desc="building (fake column) test dataframe..."):
-        for j in range(len(df_real)):
-            item = df_fake.iloc[j]["image_path"]
-            
-            # controllo che non sia già presente nel dataset da usare per l'allenamento
-            if item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
-                continue
-            
-            else:
-                df_test.loc[i, "fake"] = item
+    for i in tqdm(df_fake["image_path"], desc="building (fake column) test dataframe..."):
+        if i not in used_images: 
+            fake_images.append(i)
+
+            if len(fake_images) >= df_test_size:
                 break
 
+    df_test["real"] = real_images
+    df_test["fake"] = fake_images
     df_test.to_csv(output_dir, index=False)
 
 
@@ -112,12 +106,12 @@ def build(dataset_size, fake_dataset, real_dataset):
     real_dataset_path = os.path.join(artifact_path, real_dataset, "metadata.csv")
 
     output_dir = os.path.join(project_path, "datasets", "out.csv")
-    train(fake_dataset_path, real_dataset_path, output_dir, dataset_size)
+    # train(fake_dataset_path, real_dataset_path, dataset_size, output_dir)
 
     df_out = pd.read_csv(output_dir)
 
     output_dir = os.path.join(project_path, "datasets", "testList.csv")
-    test(fake_dataset_path, real_dataset_path, output_dir, df_out)
+    test(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
 
 if __name__ == "__main__":
