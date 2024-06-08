@@ -99,7 +99,7 @@ def get_encoding_csv(model, anc_img_names, dirFolder):
 def euclidean_dist(img_enc, anc_enc_arr):
     # dist = np.sqrt(np.dot(img_enc-anc_enc_arr, (img_enc- anc_enc_arr).T))
     dist = np.dot(img_enc-anc_enc_arr, (img_enc- anc_enc_arr).T)
-    # dist = np.sqrt(dist)
+    dist = np.sqrt(dist)
     return dist
 
 
@@ -129,8 +129,11 @@ def semi_hard_mining(real_metadata, fake_metadata, margin, output_dir_path):
 
     df_enc_real = get_encoding_csv(model, real_df["real"], real_dir_path)
     df_enc_fake = get_encoding_csv(model, fake_df["fake"], fake_dir_path)
+   # df_enc_real.to_csv("df_enc_real.csv",index=False)
+    #df_enc_fake.to_csv("df_enc_fake.csv", index=False)
 
     anc_enc_arr_real = df_enc_real.iloc[:, 1:].to_numpy()
+
     anc_enc_arr_fake = df_enc_fake.iloc[:, 1:].to_numpy()
 
     dataset_semi_hard_fake = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
@@ -141,62 +144,67 @@ def semi_hard_mining(real_metadata, fake_metadata, margin, output_dir_path):
 
     print(len(df_enc_fake))
     for i in tqdm(range(len(df_enc_fake))):
-        A_embs = anc_enc_arr_fake[i : i+1, :]
+        A_embs = anc_enc_arr_fake[i, :]
+        print(A_embs.shape)
         path_anchor = df_enc_fake.iloc[i]['fake']
         idp = random.randint(0, len(df_enc_fake) - 1)
-        while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_fake[idp:idp+1, :])):
+        while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_fake[idp, :])):
             idp = random.randint(1, len(df_enc_fake) - 1)
 
-        P_embs = anc_enc_arr_fake[idp : idp +1, :]
+        #P_embs = anc_enc_arr_fake[idp : idp +1, :]
         path_positive = df_enc_fake.iloc[idp]["fake"]
 
 
         idn = random.randint(0, len(df_enc_real) - 1)
-        N_embs = anc_enc_arr_real[idn : idn+1, :]
+        #N_embs = anc_enc_arr_real[idn : idn+1, :]
         path_negative = df_enc_real.iloc[idn]["real"]
 
-        dist_positive = euclidean_dist(anc_enc_arr_fake[i : i+1, :], anc_enc_arr_fake[idp : idp+1, :])
-        dist_negative = euclidean_dist(anc_enc_arr_fake[i : i+1, :], anc_enc_arr_real[idn : idn+1, :])
+        dist_positive = euclidean_dist(anc_enc_arr_fake[i, :], anc_enc_arr_fake[idp, :])
+        dist_negative = euclidean_dist(anc_enc_arr_fake[i, :], anc_enc_arr_real[idn, :])
 
-        print("dist_positive  :", dist_positive,"  dist_negative  :", dist_negative, "  dist_positive + margin   :", dist_positive+margin)
+        #print("dist_positive  :", dist_positive,"  dist_negative  :", dist_negative, "  dist_positive + margin   :", dist_positive+margin)
         if (dist_positive < dist_negative) and (dist_negative < (dist_positive + margin)):
-            print("sono dentro l'if")
+            #print("FAKE -> sono dentro l'if")
             dataset_semi_hard_fake.loc[fake_index] = [
                 path_anchor,
                 path_positive,
                 path_negative,
             ]
-            fake_index = fake_index + 1
+
+
+        fake_index = fake_index + 1
 
            # print ("Ciclo Fake:  IDP:  ",idp,"  IDN: ",idn)
 
     for i in tqdm(range(len(df_enc_real))):
-        A_embs = anc_enc_arr_real[i : i+1, :]
+        A_embs = anc_enc_arr_real[i, :]
         path_anchor = df_enc_real.iloc[i]["real"]
 
         idp = random.randint(0, len(df_enc_real) - 1)
-        while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_real[idp:idp+1, :])):
+        while torch.equal(torch.tensor(A_embs), torch.tensor(anc_enc_arr_real[idp, :])):
             idp = random.randint(1, len(df_enc_real) - 1)
 
-        P_embs = anc_enc_arr_real[idp : idp+1, :]
+        #P_embs = anc_enc_arr_real[idp : idp+1, :]
         path_positive = df_enc_real.iloc[idp]["real"]
 
         idn = random.randint(0, len(df_enc_fake) - 1)
-        N_embs = anc_enc_arr_fake[idn : idn+1, :]
+        #N_embs = anc_enc_arr_fake[idn : idn+1, :]
         path_negative = df_enc_fake.iloc[idn]["fake"]
 
-        dist_positive = euclidean_dist(anc_enc_arr_real[i : i+1, :], anc_enc_arr_real[idp : idp+1, :])
-        dist_negative = euclidean_dist(anc_enc_arr_real[i : i+1, :], anc_enc_arr_fake[idn : idn+1, :])
+        dist_positive = euclidean_dist(anc_enc_arr_real[i, :], anc_enc_arr_real[idp, :])
+        dist_negative = euclidean_dist(anc_enc_arr_real[i, :], anc_enc_arr_fake[idn, :])
 
-        print("dist_positive  :", dist_positive,"  dist_negative  :", dist_negative, "  dist_positive + margin   :", dist_positive+margin)
+        #print("dist_positive  :", dist_positive,"  dist_negative  :", dist_negative, "  dist_positive + margin   :", dist_positive+margin)
         if (dist_positive < dist_negative) and (dist_negative < (dist_positive + margin)):
-            #print("sono dentro l'if")
+            #print("REAL -> sono dentro l'if")
             dataset_semi_hard_real.loc[real_index] = [
                 path_anchor,
                 path_positive,
                 path_negative,
             ]
-            real_index = real_index + 1
+
+
+        real_index = real_index + 1
             # print("Ciclo Real:  IDP:  ", idp, "  IDN: ", idn)
 
 
@@ -216,7 +224,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
     df_real = (df_real[df_real.target == 0]).sample(frac=1)
     df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
 
-    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
+    df_out = pd.read_csv(os.path.join(project_path, "datasets", "semi_hard_mining_database.csv"))
 
     df_test = pd.DataFrame(columns=["real", "fake"])
     df_test_size = len(df_out) / 100 * 20
@@ -229,8 +237,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         item = df_real.iloc[idx]["image_path"]
 
         # controllo che non sia già presente nel dataset da usare per l'allenamento, altrimenti ne scelgo un altro
-        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out[
-            "Negative"].to_list():
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
             idx = random.randint(1, len(df_real) - 1)
             item = df_real.iloc[idx]["image_path"]
 
@@ -241,8 +248,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         idx = random.randint(0, len(df_fake))
         item = df_fake.iloc[idx]["image_path"]
 
-        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out[
-            "Negative"].to_list():
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
             idx = random.randint(1, len(df_fake) - 1)
             item = df_fake.iloc[idx]["image_path"]
 
