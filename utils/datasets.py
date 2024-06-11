@@ -73,8 +73,7 @@ def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
     df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
 
     df_test = pd.DataFrame(columns=["real", "fake"])
-    df_test_size = len(df_out) / 100 * 20
-    df_test_size = int(df_test_size / 2)
+    df_test_size = 1000
 
     # si ottengono le immagini già presenti nel dataset di training
     used_images = set(df_out["Anchor"].to_list() + df_out["Positive"].to_list() + df_out["Negative"].to_list())
@@ -86,7 +85,7 @@ def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
         if i not in used_images: 
             real_images.append(i)
 
-            if len(real_images) >= df_test_size:
+            if len(real_images) >= df_test_size * 2:
                 break
 
     for i in tqdm(df_fake["image_path"], desc="building (fake column) test dataframe..."):
@@ -97,7 +96,7 @@ def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
                 break
 
     df_test["real"] = real_images
-    df_test["fake"] = fake_images
+    df_test["fake"] = pd.Series(fake_images)
     df_test.to_csv(output_dir, index=False)
 
 
@@ -109,7 +108,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
     temp_path = os.path.join(project_path, "temp")
     output_path = os.path.join(temp_path, fake_dataset + "+" + real_dataset)
 
-    df_fourier = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
+    df_fourier_out = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
 
     # controllo che non esistano le cartelle dove salvare le immagini, altrimenti le si creano
     if not os.path.isdir(temp_path): 
@@ -154,7 +153,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
             n_img = np.log(np.abs(n_img))
         except Warning: 
             # nelle immagini a basso contrasto il valore assoluto potrebbe essere zero
-            df_fourier.loc[index] = [
+            df_fourier_out.loc[index] = [
                 None,
                 None,
                 None
@@ -216,16 +215,117 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
         io.imsave(p_path, p_img)
         io.imsave(n_path, n_img)
 
-        df_fourier.loc[index] = [
+        df_fourier_out.loc[index] = [
             df_a_path,
             df_p_path,
             df_n_path
         ]
 
-    df_fourier = df_fourier.dropna(how='any',axis=0) 
+    df_fourier_out = df_fourier_out.dropna(how='any',axis=0) 
     
     output_dir = os.path.join(project_path, "datasets", "fourier_out.csv")
-    df_fourier.to_csv(output_dir, index=False)
+    df_fourier_out.to_csv(output_dir, index=False)
+
+
+def convert_test(fake_dataset_path, real_dataset_path, test_list): 
+    project_path = Path(__file__).parent.parent
+    fake_dataset = fake_dataset_path.split("\\")[-1]
+    real_dataset = real_dataset_path.split("\\")[-1]
+
+    # controllare i path (e la creazione delle cartelle) 
+    temp_path = os.path.join(project_path, "temp")
+    output_path = os.path.join(temp_path, fake_dataset + "+" + real_dataset)
+    output_path = os.path.join(output_path, "test")
+    
+    if not os.path.isdir(output_path): 
+        os.mkdir(output_path)
+        os.mkdir(os.path.join(output_path, fake_dataset))
+        os.mkdir(os.path.join(output_path, real_dataset))
+
+    df_fourier_test_list = pd.DataFrame(columns=["real", "fake"])
+
+    real_images = test_list["real"]
+
+    for i in tqdm(range(len(real_images)), desc="converting rgb images (real) to fourier spectrum..."):
+        real = real_images[i]
+
+        # si ottengono le immagini
+        real_img = io.imread(os.path.join(real_dataset_path, real))
+
+        # si convertono le immagini rgb in scala di grigi
+        real_img = color.rgb2gray(real_img)
+
+        # si effettua la trasformata di fourier
+        real_img = np.fft.fft2(real_img)
+
+        # si applica il logaritmo (ln) al valore assoluto dell'immagine per normalizzarla 
+        try: 
+            real_img = np.log(np.abs(real_img))
+        except Warning: 
+            # nelle immagini a basso contrasto il valore assoluto potrebbe essere zero
+            df_fourier_test_list.iloc[i]["real"] = None
+        
+            pass 
+            continue
+
+        # si considerano le frequenze necessarie
+        real_min = np.min(real_img)
+        real_max = np.max(real_img)
+
+        # controllo per evitare errori con le immagini con poco contrasto
+        if (real_max - real_min) <= 0:
+            real_img = (real_img - real_min) / ((real_max - real_min) + np.finfo(float).eps)
+        else: 
+            real_img = (real_img - real_min) / (real_max - real_min)
+
+        # si convertono le immagini in formato unsigned byte (al posto di fare / 255.0)
+        real_img = img_as_ubyte(real_img)
+
+        # si memorizzano le immagini fake in una cartella e quelle real in un'altra
+        real_path = os.path.join(output_path, real_dataset, str(i) + "_real" + ".png")
+
+        # path da memorizzare nel df per caricare le immagini successivamente
+        df_real_path = str(i) + "_real" + ".png"
+
+        io.imsave(real_path, real_img)
+        df_fourier_test_list.loc[i, "real"] = df_real_path
+
+    fake_images = test_list["fake"]
+
+    for i in tqdm(range(int(len(fake_images) / 2)), desc="converting rgb images (fake) to fourier spectrum..."):
+        fake = fake_images[i]
+
+        fake_img = io.imread(os.path.join(fake_dataset_path, fake))
+        fake_img = color.rgb2gray(fake_img)
+        fake_img = np.fft.fft2(fake_img)
+
+        try: 
+            fake_img = np.log(np.abs(fake_img))
+        except Warning: 
+            df_fourier_test_list.iloc[i]["fake"] = None
+            
+            pass 
+            continue
+                
+        fake_min = np.min(fake_img)
+        fake_max = np.max(fake_img)
+
+        if (fake_max - fake_min) <= 0:
+            fake_img = (fake_img - fake_min) / ((fake_max - fake_min) + np.finfo(float).eps)
+        else: 
+            fake_img = (fake_img - fake_min) / (fake_max - fake_min)
+
+        fake_img = img_as_ubyte(fake_img)
+
+        fake_path = os.path.join(output_path, fake_dataset, str(i) + "_fake" + ".png")
+
+        df_fake_path = str(i) + "_fake" + ".png"
+
+        io.imsave(fake_path, fake_img)
+        df_fourier_test_list.loc[i, "fake"] = df_fake_path
+    
+    output_dir = os.path.join(project_path, "datasets", "fourier_test_list.csv")
+    df_fourier_test_list.to_csv(output_dir, index=False)
 
 
 # attenzione ai path inseriti
@@ -237,12 +337,12 @@ def build(fake_dataset, real_dataset, dataset_size):
     real_dataset_path = os.path.join(artifact_path, real_dataset, "metadata.csv")
 
     output_dir = os.path.join(project_path, "datasets", "out.csv")
-    train(fake_dataset_path, real_dataset_path, dataset_size, output_dir)
+    # train(fake_dataset_path, real_dataset_path, dataset_size, output_dir)
 
-    # df_out = pd.read_csv(output_dir)
+    df_out = pd.read_csv(output_dir)
 
-    # output_dir = os.path.join(project_path, "datasets", "testList.csv")
-    # test(fake_dataset_path, real_dataset_path, df_out, output_dir)
+    output_dir = os.path.join(project_path, "datasets", "testList.csv")
+    test(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
 
 def fourier(fake_dataset, real_dataset): 
@@ -252,10 +352,11 @@ def fourier(fake_dataset, real_dataset):
     fake_dataset_path = os.path.join(artifact_path, fake_dataset)
     real_dataset_path = os.path.join(artifact_path, real_dataset)
     
-    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
-    convert_train(fake_dataset_path, real_dataset_path, df_out)
+    # df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
+    # convert_train(fake_dataset_path, real_dataset_path, df_out)
 
-    # df_fourier = pd.read_csv(os.path.join(project_path, "datasets", "fourier.csv"))
+    test_list = pd.read_csv(os.path.join(project_path, "datasets", "testList.csv"))
+    convert_test(fake_dataset_path, real_dataset_path, test_list)
 
 
 if __name__ == "__main__":
