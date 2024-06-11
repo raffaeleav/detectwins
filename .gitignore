@@ -1,17 +1,1 @@
-# cartella pycache
-utils/__pycache__/
-
-# esclusi i file di output perchè sono troppo pesanti 
-notebooks/best_model.pt
-notebooks/database.csv
-
-# file pycharm
-.idea/
-
-# dotenv
-.env
-
-# virtualenv
-.venv
-venv/
-ENV/
+.DS_Store
