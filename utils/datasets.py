@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from skimage import io, color, img_as_ubyte
+from skimage import io, color
 from pathlib import Path
 
 
@@ -136,6 +136,10 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
             p_img = io.imread(os.path.join(fake_dataset_path, row.Positive))
             n_img = io.imread(os.path.join(real_dataset_path, row.Negative))
 
+        a_img = np.float32(a_img / 255)
+        p_img = np.float32(p_img / 255)
+        n_img = np.float32(n_img / 255)
+
         # si convertono le immagini rgb in scala di grigi
         a_img = color.rgb2gray(a_img)
         p_img = color.rgb2gray(p_img)
@@ -151,7 +155,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
             a_img = np.log(np.abs(a_img))
             p_img = np.log(np.abs(p_img))
             n_img = np.log(np.abs(n_img))
-        except Warning: 
+        except UserWarning: 
             # nelle immagini a basso contrasto il valore assoluto potrebbe essere zero
             df_fourier_out.loc[index] = [
                 None,
@@ -163,33 +167,41 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
             continue
                 
         # si considerano le frequenze necessarie
-        a_min = np.min(a_img)
-        a_max = np.max(a_img)
-        p_min = np.min(p_img)
-        p_max = np.max(p_img)
-        n_min = np.min(n_img)
-        n_max = np.max(n_img)
+        a_min = np.percentile(a_img, 5)
+        a_max = np.percentile(a_img, 95)
+        p_min = np.percentile(p_img, 5)
+        p_max = np.percentile(p_img, 95)
+        n_min = np.percentile(n_img, 5)
+        n_max = np.percentile(n_img, 95)
 
-        # controllo per evitare errori con le immagini con poco contrasto
+        # controllo per evitare errori con le immagini con poco contrasto 
         if (a_max - a_min) <= 0:
             a_img = (a_img - a_min) / ((a_max - a_min) + np.finfo(float).eps)
         else: 
             a_img = (a_img - a_min) / (a_max - a_min)
+            a_img = (a_img - 0.5) * 2
+            a_img[a_img < -1] = -1
+            a_img[a_img > 1] = 1
 
         if (p_max - p_min) <= 0:
             p_img = (p_img - p_min) / ((p_max - p_min) + np.finfo(float).eps)
         else: 
             p_img = (p_img - p_min) / (p_max - p_min)
+            p_img = (p_img - 0.5) * 2
+            p_img[p_img < -1] = -1
+            p_img[p_img > 1] = 1
 
         if (n_max - n_min) <= 0:
             n_img = (n_img - n_min) / ((n_max - n_min) + np.finfo(float).eps)
         else: 
             n_img = (n_img - n_min) / (n_max - n_min)
+            n_img = (n_img - 0.5) * 2
+            n_img[n_img < -1] = -1
+            n_img[n_img > 1] = 1
 
-        # si convertono le immagini in formato unsigned byte (al posto di fare / 255.0)
-        a_img = img_as_ubyte(a_img)
-        p_img = img_as_ubyte(p_img)
-        n_img = img_as_ubyte(n_img)
+        a_img = ((a_img + 1) / 2 * 255).astype(np.uint8)
+        p_img = ((p_img + 1) / 2 * 255).astype(np.uint8)
+        n_img = ((n_img + 1) / 2 * 255).astype(np.uint8)
 
         # si memorizzano le immagini fake in una cartella e quelle real in un'altra
         if str(row.Anchor).startswith("coco"):
@@ -252,6 +264,8 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
         # si ottengono le immagini
         real_img = io.imread(os.path.join(real_dataset_path, real))
 
+        real_img = np.float32(real_img / 255)
+
         # si convertono le immagini rgb in scala di grigi
         real_img = color.rgb2gray(real_img)
 
@@ -269,17 +283,20 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
             continue
 
         # si considerano le frequenze necessarie
-        real_min = np.min(real_img)
-        real_max = np.max(real_img)
+        real_min = np.percentile(real_img, 5)
+        real_max = np.percentile(real_img, 95)
 
         # controllo per evitare errori con le immagini con poco contrasto
         if (real_max - real_min) <= 0:
             real_img = (real_img - real_min) / ((real_max - real_min) + np.finfo(float).eps)
         else: 
             real_img = (real_img - real_min) / (real_max - real_min)
+            real_img = (real_img - 0.5) * 2
+            real_img[real_img < -1] = -1
+            real_img[real_img > 1] = 1
 
-        # si convertono le immagini in formato unsigned byte (al posto di fare / 255.0)
-        real_img = img_as_ubyte(real_img)
+        # normalizzazione per salvare l'immagine in png
+        real_img = ((real_img + 1) / 2 * 255).astype(np.uint8)
 
         # si memorizzano le immagini fake in una cartella e quelle real in un'altra
         real_path = os.path.join(output_path, real_dataset, str(i) + "_real" + ".png")
@@ -296,6 +313,7 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
         fake = fake_images[i]
 
         fake_img = io.imread(os.path.join(fake_dataset_path, fake))
+        fake_img = np.float32(fake_img / 255)
         fake_img = color.rgb2gray(fake_img)
         fake_img = np.fft.fft2(fake_img)
 
@@ -307,15 +325,18 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
             pass 
             continue
                 
-        fake_min = np.min(fake_img)
-        fake_max = np.max(fake_img)
+        fake_min = np.percentile(fake_img, 5)
+        fake_max = np.percentile(fake_img, 95)
 
         if (fake_max - fake_min) <= 0:
             fake_img = (fake_img - fake_min) / ((fake_max - fake_min) + np.finfo(float).eps)
         else: 
             fake_img = (fake_img - fake_min) / (fake_max - fake_min)
+            fake_img = (fake_img - 0.5) * 2
+            fake_img[fake_img < -1] = -1
+            fake_img[fake_img > 1] = 1
 
-        fake_img = img_as_ubyte(fake_img)
+        fake_img = ((fake_img + 1) / 2 * 255).astype(np.uint8)
 
         fake_path = os.path.join(output_path, fake_dataset, str(i) + "_fake" + ".png")
 
@@ -341,8 +362,8 @@ def build(fake_dataset, real_dataset, dataset_size):
 
     df_out = pd.read_csv(output_dir)
 
-    output_dir = os.path.join(project_path, "datasets", "testList.csv")
-    test(fake_dataset_path, real_dataset_path, df_out, output_dir)
+    # output_dir = os.path.join(project_path, "datasets", "testList.csv")
+    # test(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
 
 def fourier(fake_dataset, real_dataset): 
@@ -352,11 +373,11 @@ def fourier(fake_dataset, real_dataset):
     fake_dataset_path = os.path.join(artifact_path, fake_dataset)
     real_dataset_path = os.path.join(artifact_path, real_dataset)
     
-    # df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
-    # convert_train(fake_dataset_path, real_dataset_path, df_out)
+    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
+    convert_train(fake_dataset_path, real_dataset_path, df_out)
 
-    test_list = pd.read_csv(os.path.join(project_path, "datasets", "testList.csv"))
-    convert_test(fake_dataset_path, real_dataset_path, test_list)
+    # test_list = pd.read_csv(os.path.join(project_path, "datasets", "testList.csv"))
+    # convert_test(fake_dataset_path, real_dataset_path, test_list)
 
 
 if __name__ == "__main__":
