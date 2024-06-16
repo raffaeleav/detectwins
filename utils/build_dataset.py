@@ -8,58 +8,36 @@ from pathlib import Path
 
 
 # funzione per costruire il dataset
-def build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size):   
+def build_df(fake_dataset_path, real_dataset_path, output_dir):   
     # dataframe dei metadati del dataset di immagini
     df_fake = pd.read_csv(fake_dataset_path)
     # il dataset delle immagini real è coco
     df_real = pd.read_csv(real_dataset_path)
 
-    # 'mescolo' i dataframe
-    df_real = (df_real[df_real.target == 0]).sample(frac=1)
-    df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
+    # ottengo le immagini anchor, positive e fake
+    df_real = (df_real[df_real.target == 0]).sample(2000)
 
-    # si crea la parte del dataset in cui le Anchor sono real
-    df_real1 = df_real.sample(dataset_size * 2)
-    df_fake1 = df_fake.sample(dataset_size)
+    df_anchor = df_real.head(1000)
+    df_positive = df_real.tail(1000)
+    df_negative = (df_fake[df_fake.target != 0]).sample(1000)
 
-    # si ottengono le immagini anchor, positive e fake
-    df_anchor = df_real1.head(dataset_size)
-    df_positive = df_real1.tail(dataset_size)
-    df_negative = df_fake1
-
-    # dataframe con anchor positive
-    df_out1 = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
-    dataset_size = int(dataset_size / 2)
+    # dataframe finale
+    df_out = pd.DataFrame(columns=['Anchor', 'Positive', 'Negative'])
 
     # f(n) = O(n)
-    for i in tqdm(range(dataset_size), desc="building (positive anchor) dataframe..."):
-        df_out1.loc[i] = [
-            df_anchor.iloc[i]["image_path"], 
-            df_positive.iloc[i]["image_path"], 
-            df_negative.iloc[i]["image_path"]
+    for i in tqdm(range(1000), desc="building dataframe..."):
+        df_out.loc[i] = [
+            df_anchor.iloc[i]['image_path'], 
+            df_positive.iloc[i]['image_path'], 
+            df_negative.iloc[i]['image_path']
+        ]
+    for i in tqdm(range(1000), desc="building dataframe..."):
+        df_out.loc[i] = [
+            df_negative.iloc[i]['image_path'], 
+            df_negative.iloc[i]['image_path'], 
+            df_positive.iloc[i]['image_path']
         ]
 
-    # dataframe con anchor negative
-    df_out2 = pd.DataFrame(columns=["Anchor", "Positive", "Negative"])
-
-    # si crea la parte del dataset in cui le Anchor sono fake (le Anchor possono essere anche immagini che nella 
-    # prima parte del dataset erano presenti nella colonna Negative)
-    df_fake2 = df_fake.sample(dataset_size * 2)
-    df_real2 = df_real.sample(dataset_size)
-
-    df_anchor = df_fake2.head(dataset_size)
-    df_positive = df_fake2.tail(dataset_size)
-    df_negative = df_real2
-
-    # f(n) = O(n)
-    for i in tqdm(range(dataset_size), desc="building (negative anchor) dataframe..."):
-        df_out2.loc[i] = [
-            df_anchor.iloc[i]["image_path"], 
-            df_positive.iloc[i]["image_path"], 
-            df_negative.iloc[i]["image_path"]
-        ]
-
-    df_out = pd.concat([df_out1, df_out2], axis=0)
     df_out.to_csv(output_dir, index=False)
 
 
@@ -82,7 +60,7 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
     df_real = pd.read_csv(real_dataset_path)
     df_fake = pd.read_csv(fake_dataset_path)
 
-    # 'mescolo' i dataframe
+    #'mescolo' i dataframe
     df_real = (df_real[df_real.target == 0]).sample(frac=1)
     df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
     
@@ -99,8 +77,8 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         item = df_real.iloc[idx]["image_path"]
 
         # controllo che non sia già presente nel dataset da usare per l'allenamento, altrimenti ne scelgo un altro
-        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
-            idx = random.randint(1, len(df_real) - 1)
+        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list():
+            idx = random.randint(0, len(df_real))
             item = df_real.iloc[idx]["image_path"]
 
         df_test.loc[i, "real"] = item
@@ -110,8 +88,8 @@ def build_test_df(fake_dataset_path, real_dataset_path, output_dir):
         idx = random.randint(0, len(df_fake))
         item = df_fake.iloc[idx]["image_path"]
 
-        while item in df_out["Anchor"].to_list() or item in df_out["Positive"].to_list() or item in df_out["Negative"].to_list():
-            idx = random.randint(1, len(df_fake) - 1)
+        while item in df_out["Negative"].to_list():
+            idx = random.randint(0, len(df_fake))
             item = df_fake.iloc[idx]["image_path"]
 
         df_test.loc[i, "fake"] = item
@@ -125,15 +103,15 @@ def main():
     project_path = Path(__file__).parent.parent
 
     artifact_path = os.path.join(path, "artifact")
-    fake_dataset_path = os.path.join(artifact_path, "taming_transformer", "metadata.csv")
+    fake_dataset_path = os.path.join(artifact_path, "cycle_gan", "metadata.csv")
     real_dataset_path = os.path.join(artifact_path, "coco", "metadata.csv")
 
-    output_dir = os.path.join(project_path, "datasets", "out.csv")
-    
-    dataset_size = 20000
-    build_df(fake_dataset_path, real_dataset_path, output_dir, dataset_size)
+    # output_dir = os.path.join(project_path, "datasets", "out.csv")
+
+    # build_df(fake_dataset_path, real_dataset_path, output_dir)
 
     output_dir = os.path.join(project_path, "datasets", "testList.csv")
+
     build_test_df(fake_dataset_path, real_dataset_path, output_dir)
 
 
