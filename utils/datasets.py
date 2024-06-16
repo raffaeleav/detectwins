@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 # funzione per costruire il dataset
-def train(fake_dataset_path, real_dataset_path, dataset_size, output_dir):   
+def train(fake_dataset_path, real_dataset_path, dataset_size, output_path):   
     # dataframe dei metadati del dataset di immagini
     df_fake = pd.read_csv(fake_dataset_path)
     # il dataset delle immagini real è coco
@@ -60,11 +60,11 @@ def train(fake_dataset_path, real_dataset_path, dataset_size, output_dir):
         ]
 
     df_out = pd.concat([df_out1, df_out2], axis=0)
-    df_out.to_csv(output_dir, index=False)
+    df_out.to_csv(output_path, index=False)
 
 
 # funzione per creare il dataset di test
-def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
+def test(fake_dataset_path, real_dataset_path, df_out, output_path):
     df_real = pd.read_csv(real_dataset_path)
     df_fake = pd.read_csv(fake_dataset_path)
 
@@ -97,7 +97,7 @@ def test(fake_dataset_path, real_dataset_path, df_out, output_dir):
 
     df_test["real"] = real_images
     df_test["fake"] = pd.Series(fake_images)
-    df_test.to_csv(output_dir, index=False)
+    df_test.to_csv(output_path, index=False)
 
 
 # funzione per convertire le immagini rgb nel dataset di training nello spettro di fourier
