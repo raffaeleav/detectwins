@@ -1,9 +1,12 @@
 # cartella pycache
 utils/__pycache__/
 
+# cartella di file temporanei
+temp
+
 # esclusi i file di output perchè sono troppo pesanti 
-notebooks/best_model.pt
-notebooks/database.csv
+notebooks/*.pt
+notebooks/*.csv
 
 # file pycharm
 .idea/
@@ -15,3 +18,4 @@ notebooks/database.csv
 .venv
 venv/
 ENV/
+.DS_Store
