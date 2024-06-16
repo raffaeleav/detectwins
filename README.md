@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="https://github.com/raffaeleav/project-detective/assets/114619463/6baf8cb8-c6ab-4c02-8534-724cd1b2f4a5" width="256" heigth="256">
+  <img src="https://github.com/raffaeleav/project-detective/assets/114619463/0fb732f2-4e94-4584-ab40-7d4aa301133e" width="256" heigth="256">
 </p>
+
 
 <p align="center">
   Un framework di Deepfake detection sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
