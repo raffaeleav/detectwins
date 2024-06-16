@@ -1,1 +1,21 @@
+# cartella pycache
+utils/__pycache__/
+
+# cartella di file temporanei
+temp
+
+# esclusi i file di output perchè sono troppo pesanti 
+notebooks/*.pt
+notebooks/*.csv
+
+# file pycharm
+.idea/
+
+# dotenv
+.env
+
+# virtualenv
+.venv
+venv/
+ENV/
 .DS_Store
