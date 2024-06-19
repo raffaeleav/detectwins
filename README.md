@@ -35,6 +35,7 @@
 2) Offline Hard Mining
 3) Online Semi-Hard Mining
 4) Online Hard Mining
+5) One-Shot Learning
 
 
 ## Dipendenze 

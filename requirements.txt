@@ -75,3 +75,4 @@ urllib3==2.2.1
 wcwidth==0.2.13
 wheel==0.41.2
 zipp==3.17.0
+seaborn=0.13.2

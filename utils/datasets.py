@@ -101,7 +101,7 @@ def test(fake_dataset_path, real_dataset_path, df_out, output_path):
 
 
 # funzione per convertire le immagini rgb nel dataset di training nello spettro di fourier
-def convert_train(fake_dataset_path, real_dataset_path, df_out): 
+def convert_train(fake_dataset_path, real_dataset_path, df_out, output_dir): 
     project_path = Path(__file__).parent.parent
     fake_dataset = fake_dataset_path.split("\\")[-1]
     real_dataset = real_dataset_path.split("\\")[-1]
@@ -177,6 +177,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
         # controllo per evitare errori con le immagini con poco contrasto 
         if (a_max - a_min) <= 0:
             a_img = (a_img - a_min) / ((a_max - a_min) + np.finfo(float).eps)
+
         else: 
             a_img = (a_img - a_min) / (a_max - a_min)
             a_img = (a_img - 0.5) * 2
@@ -185,6 +186,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
 
         if (p_max - p_min) <= 0:
             p_img = (p_img - p_min) / ((p_max - p_min) + np.finfo(float).eps)
+
         else: 
             p_img = (p_img - p_min) / (p_max - p_min)
             p_img = (p_img - 0.5) * 2
@@ -193,6 +195,7 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
 
         if (n_max - n_min) <= 0:
             n_img = (n_img - n_min) / ((n_max - n_min) + np.finfo(float).eps)
+
         else: 
             n_img = (n_img - n_min) / (n_max - n_min)
             n_img = (n_img - 0.5) * 2
@@ -235,11 +238,10 @@ def convert_train(fake_dataset_path, real_dataset_path, df_out):
 
     df_fourier_out = df_fourier_out.dropna(how='any',axis=0) 
     
-    output_dir = os.path.join(project_path, "datasets", "fourier_out.csv")
     df_fourier_out.to_csv(output_dir, index=False)
 
 
-def convert_test(fake_dataset_path, real_dataset_path, test_list): 
+def convert_test(fake_dataset_path, real_dataset_path, test_list, output_dir): 
     project_path = Path(__file__).parent.parent
     fake_dataset = fake_dataset_path.split("\\")[-1]
     real_dataset = real_dataset_path.split("\\")[-1]
@@ -330,6 +332,7 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
 
         if (fake_max - fake_min) <= 0:
             fake_img = (fake_img - fake_min) / ((fake_max - fake_min) + np.finfo(float).eps)
+
         else: 
             fake_img = (fake_img - fake_min) / (fake_max - fake_min)
             fake_img = (fake_img - 0.5) * 2
@@ -345,8 +348,82 @@ def convert_test(fake_dataset_path, real_dataset_path, test_list):
         io.imsave(fake_path, fake_img)
         df_fourier_test_list.loc[i, "fake"] = df_fake_path
     
-    output_dir = os.path.join(project_path, "datasets", "fourier_test_list.csv")
     df_fourier_test_list.to_csv(output_dir, index=False)
+
+
+# funzione per creare il dataset per il one-shot learning
+def oneshot(fake_dataset_path, df_test, size, output_path):
+    df_fake = pd.read_csv(fake_dataset_path)
+
+    # 'mescolo' il dataframe
+    df_fake = (df_fake[df_fake.target != 0]).sample(frac=1)
+
+    df_oneshot = pd.DataFrame(columns=["Anchor"])
+
+    # si ottengono le immagini già presenti nel dataset di test 
+    used_images = set(df_test["fake"].to_list())
+    fake_images = []
+
+    # f(n) = O(n), i set python sono hash table
+    for i in tqdm(df_fake["image_path"], desc="building one-shot learning dataframe..."):
+        if i not in used_images: 
+            fake_images.append(i)
+
+            if len(fake_images) >= size:
+                break
+
+    df_oneshot["Anchor"] = pd.Series(fake_images)
+    df_oneshot.to_csv(output_path, index=False)
+
+
+# funzione per convertire nello spettro di fourier le immagini presenti nel dataset di one-shot
+def convert_oneshot(fake_dataset_path, df_oneshot, output_path):
+    fake_dataset = fake_dataset_path.split("\\")[-1]
+
+    df_fourier_oneshot = pd.DataFrame(columns=["Anchor"])
+
+    fake_images = df_oneshot["Anchor"]
+
+    for i in tqdm(range(len(fake_images)), desc="converting rgb images (fake) to fourier spectrum..."):
+        fake = fake_images[i]
+
+        fake_img = io.imread(os.path.join(fake_dataset_path, fake))
+        fake_img = np.float32(fake_img / 255)
+        fake_img = color.rgb2gray(fake_img)
+        fake_img = np.fft.fft2(fake_img)
+
+        try: 
+            fake_img = np.log(np.abs(fake_img))
+        except Warning: 
+            df_fourier_oneshot.iloc[i]["Anchor"] = None
+            
+            pass 
+            continue
+                
+        fake_min = np.percentile(fake_img, 5)
+        fake_max = np.percentile(fake_img, 95)
+
+        if (fake_max - fake_min) <= 0:
+            fake_img = (fake_img - fake_min) / ((fake_max - fake_min) + np.finfo(float).eps)
+
+        else: 
+            fake_img = (fake_img - fake_min) / (fake_max - fake_min)
+            fake_img = (fake_img - 0.5) * 2
+            fake_img[fake_img < -1] = -1
+            fake_img[fake_img > 1] = 1
+
+        fake_img = ((fake_img + 1) / 2 * 255).astype(np.uint8)
+        
+        folders = output_path.split("\\")
+        path = os.path.join(*folders[:-1])
+        path = os.path.join(path, fake_dataset, str(i) + "_fake" + ".png")
+
+        df_fake_path = str(i) + "_fake" + ".png"
+
+        io.imsave(path, fake_img)
+        df_fourier_oneshot.loc[i, "Anchor"] = df_fake_path
+
+    df_fourier_oneshot.to_csv(output_path, index=False)
 
 
 # attenzione ai path inseriti
