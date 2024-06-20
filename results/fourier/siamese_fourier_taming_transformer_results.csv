@@ -1,6 +1,2 @@
 Accuracy,Precision,Recall,Specificity,F1 Score
-<<<<<<<< HEAD:results/siamese_rgb_taming_transformer_results_semihard.csv
-46.81,46.5,42.36,51.2573,44.3336
-========
 84.5,73.2,84.39999999999999,84.55,78.402
->>>>>>>> feature/semi-hard-not-pretrained:results/fourier/siamese_fourier_taming_transformer_results.csv
