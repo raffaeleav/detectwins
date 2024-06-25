@@ -7,6 +7,7 @@ temp
 # esclusi i file di output perchè sono troppo pesanti 
 notebooks/*.pt
 !notebooks/best_model.pt
+!notebooks/fourier_emb_model.pt
 notebooks/*.csv
 
 # file pycharm
