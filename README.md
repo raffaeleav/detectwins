@@ -33,9 +33,8 @@
 ## Funzionalità
 1) Offline Semi-Hard Mining
 2) Offline Hard Mining
-3) Online Semi-Hard Mining
-4) Online Hard Mining
-5) One-Shot Learning
+3) Online Hard Mining
+4) One-Shot Learning
 
 
 ## Dipendenze 

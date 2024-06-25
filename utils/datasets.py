@@ -427,15 +427,14 @@ def convert_oneshot(fake_dataset_path, df_oneshot, output_path):
 
 
 # attenzione ai path inseriti
-def build(fake_dataset, real_dataset, dataset_size):
+def build(fake_dataset, real_dataset, dataset_size, artifact_path):
     path = Path(__file__).parent.parent.parent
     project_path = Path(__file__).parent.parent
-    artifact_path = os.path.join(path, "artifact")
     fake_dataset_path = os.path.join(artifact_path, fake_dataset, "metadata.csv")
     real_dataset_path = os.path.join(artifact_path, real_dataset, "metadata.csv")
 
     output_dir = os.path.join(project_path, "datasets", "out.csv")
-    # train(fake_dataset_path, real_dataset_path, dataset_size, output_dir)
+    train(fake_dataset_path, real_dataset_path, dataset_size, output_dir)
 
     df_out = pd.read_csv(output_dir)
 
@@ -443,15 +442,15 @@ def build(fake_dataset, real_dataset, dataset_size):
     # test(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
 
-def fourier(fake_dataset, real_dataset): 
+def fourier(fake_dataset, real_dataset, artifact_path): 
     path = Path(__file__).parent.parent.parent
     project_path = Path(__file__).parent.parent
-    artifact_path = os.path.join(path, "artifact")
     fake_dataset_path = os.path.join(artifact_path, fake_dataset)
     real_dataset_path = os.path.join(artifact_path, real_dataset)
     
     df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
-    convert_train(fake_dataset_path, real_dataset_path, df_out)
+    output_dir = os.path.join(project_path, "datasets", "fourier_out.csv")
+    convert_train(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
     # test_list = pd.read_csv(os.path.join(project_path, "datasets", "testList.csv"))
     # convert_test(fake_dataset_path, real_dataset_path, test_list)
@@ -460,7 +459,8 @@ def fourier(fake_dataset, real_dataset):
 if __name__ == "__main__":
     fake_dataset = "taming_transformer"
     real_dataset = "coco"
+    path = Path(__file__).parent.parent.parent
+    artifact_path = os.path.join(path, "artifact")
 
-    # build(fake_dataset, real_dataset, 50000)
-
-    fourier(fake_dataset, real_dataset)
+    build(fake_dataset, real_dataset, 50000, artifact_path)
+    fourier(fake_dataset, real_dataset, artifact_path)
