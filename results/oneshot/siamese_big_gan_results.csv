@@ -1,6 +1,6 @@
 Metrica,Prima,Dopo
-Accuracy,90.2,90.93
-Precision,79.27,79.59
-Recall,95.6,97.8
-Specificity,87.5,87.45
-F1 Score,86.6725,86.6725
+Accuracy,91.13,91.3
+Precision,80.78999999999999,80.82000000000001
+Recall,96.3,96.89999999999999
+Specificity,88.55,88.5
+F1 Score,87.8658,87.8658
