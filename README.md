@@ -4,20 +4,20 @@
 
 
 <p align="center">
-  Un framework di Deepfake detection sviluppato come progetto per l'insegnamento di Fondamenti di Visione Artificiale e Biometria, del corso di Laurea Magistrale in Informatica dell'Università degli Studi di Salerno. 
+  A deepfake detection framework developed as a project for the Fondamenti di Visione Artificiale e Biometria (Fundamentals of Computer Vision and Biometrics) course, part of the Computer Science Master's Degree program at the University of Salerno.
 </p>
 
 
 ## Table of Contents
-- [Autori](#Autori)
+- [Authors](#Authors)
 - [About](#About)
-- [Funzionalità](#Funzionalità)
-- [Dipendenze](#Dipendenze)
+- [Features](#Features)
+- [Dependencies](#Dependencies)
 - [Built with](#Built-with)
 
 
-## Autori 
-| Nome | Profilo GitHub |
+## Authors 
+| Name | GitHub Profile |
 | ------------- | ------------- |
 | Aviello Raffaele  | [raffaeleav](https://github.com/raffaeleav) |
 | Califano Alfonso | [Ackermann32](https://github.com/Ackermann32) |
@@ -25,23 +25,25 @@
 
 
 ## About 
-  Detectwins è stato sviluppato con lo scopo di esplorare l'applicazione del Triplet Mining (e delle sue varianti) nella rilevazione di deepfake, analizzando immagini nello spettro di Fourier. 
-  Questa tecnica sfrutta la rappresentazione delle immagini nello spazio delle frequenze, dove i segnali visivi vengono trasformati per evidenziare caratteristiche che potrebbero non essere 
-  immediatamente visibili nel dominio spaziale. Il framework è in grado di operare anche su immagini RGB (con discreti risultati).
+  Detectwins was developed to explore Triplet Mining (and its variations) for deepfake detection while using Fourier-transformed 
+  images. The latter technique is used to leverage frequency 
+	domain representation of images, where visual signals are converted to highlight details of the images that are not visible in 
+ the spatial domain (e.g. ai artifacts). The framework is also 
+	capable of analyzing RGB images (with some success).
 
 
-## Funzionalità
+## Features
 1) Offline Semi-Hard Mining
 2) Offline Hard Mining
 3) Online Hard Mining
 4) One-Shot Learning
 
 
-## Dipendenze 
+## Dependencies 
 - [Artifact dataset](https://github.com/awsaf49/artifact)
-- Le dipendenze per gli script Python sono elencate nel file "requirements.txt"
+- Python dependencies are listed in the "requirements.txt" file
 
 
 ## Built with
-- [Python](https://www.python.org/) - per la realizzazione degli algoritmi di mining delle triplette.
-- [Jupyter Notebooks](https://jupyter.org/) - per l'addestramento del modello.
+- [Python](https://www.python.org/) - used for the Triplet Mining algorithms 
+- [Jupyter Notebooks](https://jupyter.org/) - used for model training
