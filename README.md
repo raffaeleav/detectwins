@@ -4,7 +4,7 @@
 
 
 <p align="center">
-  A deepfake detection framework developed as a project for the Fondamenti di Visione Artificiale e Biometria (Fundamentals of Computer Vision and Biometrics) course, part of the Computer Science Master's Degree program at the University of Salerno.
+  A deepfake detection framework developed as a project for the Fondamenti di Visione Artificiale e Biometria (Fundamentals of Computer Vision and Biometrics) course, part of the Computer Science Master's Degree program at the University of Salerno
 </p>
 
 
