@@ -10,7 +10,7 @@
 
 ## Table of Contents
 - [Authors](#Authors)
-- [About](#About)
+- [Overview](#Overview)
 - [Features](#Features)
 - [Dependencies](#Dependencies)
 - [Built with](#Built-with)
@@ -24,7 +24,7 @@
 | Capuano Rachele | [raaacheeelc](https://github.com/raaacheeelc) |
 
 
-## About 
+## Overview 
   Detectwins was developed to explore Triplet Mining (and its variations) for deepfake detection while using Fourier-transformed 
   images. The latter technique is used to leverage frequency 
 	domain representation of images, where visual signals are converted to highlight details of the images that are not visible in 
