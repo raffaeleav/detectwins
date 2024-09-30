@@ -17,7 +17,7 @@
 
 
 ## Authors 
-| Name | GitHub Profile |
+| Name | GitHub profile |
 | ------------- | ------------- |
 | Aviello Raffaele  | [raffaeleav](https://github.com/raffaeleav) |
 | Califano Alfonso | [Ackermann32](https://github.com/Ackermann32) |
