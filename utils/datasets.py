@@ -448,9 +448,9 @@ def fourier(fake_dataset, real_dataset, artifact_path):
     fake_dataset_path = os.path.join(artifact_path, fake_dataset)
     real_dataset_path = os.path.join(artifact_path, real_dataset)
     
-    # df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
-    # output_dir = os.path.join(project_path, "datasets", "fourier_out.csv")
-    # convert_train(fake_dataset_path, real_dataset_path, df_out, output_dir)
+    df_out = pd.read_csv(os.path.join(project_path, "datasets", "out.csv"))
+    output_dir = os.path.join(project_path, "datasets", "fourier_out.csv")
+    convert_train(fake_dataset_path, real_dataset_path, df_out, output_dir)
 
     test_list = pd.read_csv(os.path.join(project_path, "datasets", "testList.csv"))
     convert_test(fake_dataset_path, real_dataset_path, test_list, os.path.join(project_path, "datasets", "fourier_test_list.csv"))
