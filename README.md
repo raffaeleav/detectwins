@@ -12,7 +12,9 @@
 - [Authors](#Authors)
 - [Overview](#Overview)
 - [Features](#Features)
+- [Results](#Results)
 - [Dependencies](#Dependencies)
+- [How to replicate](#How-to-replicate)
 - [Built with](#Built-with)
 
 
@@ -39,9 +41,49 @@
 4) One-Shot Learning
 
 
+## Results
+| Method | Accuracy | Precision | Recall | Specifity | F1 Score |
+| ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | 
+| Online Hard Mining | 88.10 | 80.65 | 84.60 | 89.85 | 82.57 |
+| One Shot Learning (BigGan) | 90.93 | 79.59 | 97.89 | 87.45 | 86.67 |
+| One Shot Learning (Latent Diffusion) | 78.36 | 69.35 | 62.90 | 86.10 | 65.71 |
+
+
 ## Dependencies 
 - [Artifact dataset](https://github.com/awsaf49/artifact)
 - Python dependencies are listed in the "requirements.txt" file
+
+
+## How to replicate
+1) Clone the repository
+```bash
+git clone https://github.com/raffaeleav/detectwins.git
+```
+2) Install dependencies (assuming conda is being used)
+```bash
+conda create -n "detectwins" python=3.10 
+conda activate detectwins
+pip install -r detectwins/requirements.txt
+```
+3) Install Cuda toolkit (assuming you have Ubuntu 22.04)
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.runsudo
+sh cuda_12.1.0_530.30.02_linux.run
+pip install torch torchvision torchaudio
+```
+4) Download Artifact dataset
+```bash
+kaggle datasets download -d awsaf49/artifact-dataset
+unzip artifact-dataset.zip -d artifact
+```
+5) Switch to the project directory
+```bash
+cd detectwins
+```
+6) Start the Jupyter server and run testing 
+```bash
+jupyter notebook notebooks/testing.ipynb
+```
 
 
 ## Built with
