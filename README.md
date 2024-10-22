@@ -13,7 +13,7 @@
 - [Overview](#Overview)
 - [Features](#Features)
 - [Results](#Results)
-- [Dependencies](#Dependencies)
+- [Requirements](#Requirements)
 - [How to replicate](#How-to-replicate)
 - [Built with](#Built-with)
 
@@ -49,7 +49,7 @@
 | One Shot Learning (Latent Diffusion) | 78.36 | 69.35 | 62.90 | 86.10 | 65.71 |
 
 
-## Dependencies 
+## Requirements 
 - [Artifact dataset](https://github.com/awsaf49/artifact)
 - Python dependencies are listed in the "requirements.txt" file
 
