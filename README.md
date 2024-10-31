@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/raffaeleav/project-detective/assets/114619463/0fb732f2-4e94-4584-ab40-7d4aa301133e" width="256" heigth="256">
+  <img src="https://github.com/user-attachments/assets/df6d4f56-eca2-4f57-8b60-7f82823f40c8" width="512" heigth="120">
 </p>
 
 
